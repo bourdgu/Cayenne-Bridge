@@ -1,0 +1,38 @@
+{
+  "cayenneConnection" : {
+    "host":"mqtt://mqtt.mydevices.com",
+    "username":"**secret**",
+    "password":"**secret**",
+    "clientId":"**secret**"
+  },
+  "mqttClient":"mqtt://mosquitto",
+  "devices":[
+    {
+      "sensors":[
+        {
+          "channel":"0",
+          "type":"temp",
+          "unit":"c",
+          "source":"ESP_C1BC80/status/temperature"
+        },
+        {
+          "channel":"1",
+          "type":"rel_hum",
+          "unit":"p",
+          "source":"ESP_C1BC80/status/humidity"
+        }
+      ],
+      "actuators":[
+        {
+          "name":"On",
+          "type":"DIGITAL",
+          "destinations":[
+            "ESP_CB29E5/action/On",
+            "ESP_CB1CC6/action/On",
+            "ESP_CBD0AF/action/On"
+          ]
+        }
+      ]
+    }
+  ]
+}
