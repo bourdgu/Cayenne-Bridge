@@ -1,44 +1,45 @@
 var mqtt = require('mqtt');
 var config = require('./config');
-var deviceHubClient  = mqtt.connect(config.deviceHubHost);
-var mqttClient = mqtt.connect(config.mqttClient);
-var deviceHubTopicList = {};
+var cayenneClient  = mqtt.connect(config.cayenneConnection.host,{clientId : config.cayenneConnection.clientId, username : config.cayenneConnection.username, password : config.cayenneConnection.password});
+var localClient = mqtt.connect(config.mqttClient);
+var destinationInfoList = {};
 var localTopicList = {};
 
-deviceHubClient.on('connect', function () {
-  console.log('connected to DeviceHub.net')
+cayenneClient.on('connect', function () {
+  console.log('connected to Cayenne MyDevices')
   //subscribe to device actuators
-  for(var i=0; i<config.devices.length; i++) {
-    var device = config.devices[i];
-    if(device.actuators!=null) {
-      for(var j=0; j<device.actuators.length; j++) {
-        var actuator = device.actuators[j];
-        var deviceHubTopic = '/a/' + device.apiKeys + '/p/' + device.projectId + '/d/' + device.deviceUUID + '/actuator/' + actuator.name + '/state';
-        deviceHubClient.subscribe(deviceHubTopic);
-        localTopicList[deviceHubTopic] = actuator.destinations;
-      }
-    }
-  }
+  // for(var i=0; i<config.devices.length; i++) {
+  //   var device = config.devices[i];
+  //   if(device.actuators!=null) {
+  //     for(var j=0; j<device.actuators.length; j++) {
+  //       var actuator = device.actuators[j];
+  //       var cayenneTopic = '/a/' + device.apiKeys + '/p/' + device.projectId + '/d/' + device.deviceUUID + '/actuator/' + actuator.name + '/state';
+  //       cayenneClient.subscribe(cayenneTopic);
+  //       localTopicList[cayenneTopic] = actuator.destinations;
+  //     }
+  //   }
+  // }
 })
 
-mqttClient.on('connect', function () {
-  console.log('connected to MQTT broker')
+localClient.on('connect', function () {
+  console.log('connected to local MQTT broker')
   //subscribe to local device sensors
   for(var i=0; i<config.devices.length; i++) {
     var device = config.devices[i];
     if(device.sensors!=null) {
       for(var j=0; j<device.sensors.length; j++) {
         var sensor = device.sensors[j];
-        var deviceHubTopic = '/a/' + device.apiKeys + '/p/' + device.projectId + '/d/' + device.deviceUUID + '/sensor/' + sensor.name + '/data';
-        mqttClient.subscribe(sensor.source);
-        deviceHubTopicList[sensor.source] = deviceHubTopic;
+        var cayenneTopic = 'v1/' + config.cayenneConnection.username + '/things/' + config.cayenneConnection.clientId + '/data/' + sensor.channel;
+        localClient.subscribe(sensor.source);
+        var destinationInfo = {topic: cayenneTopic, sensorInfo: sensor};
+        destinationInfoList[sensor.source] = destinationInfo;
       }
     }
   }
 })
 
 
-deviceHubClient.on('message', function (topic, message) {
+cayenneClient.on('message', function (topic, message) {
   // message is Buffer
   console.log('remote:' + message.toString())
   var destinations = localTopicList[topic];
@@ -50,15 +51,14 @@ deviceHubClient.on('message', function (topic, message) {
   }
 })
 
-mqttClient.on('message', function (topic, message) {
+localClient.on('message', function (topic, message) {
   // message is Buffer
   console.log('local:' + message.toString())
-  var destination = deviceHubTopicList[topic];
-  if(destination != null) {
-    var sensorUpdate = {};
-    sensorUpdate.value = String(message);
-    console.log("sending " + JSON.stringify(sensorUpdate) + " to " + destination);
-    deviceHubClient.publish(destination,JSON.stringify(sensorUpdate));
+  var destinationInfo = destinationInfoList[topic];
+  if(destinationInfo != null) {
+    var value = destinationInfo.sensorInfo.type + ',' + destinationInfo.sensorInfo.unit + '=' + message.toString();
+    console.log("sending " + value + " to " + destinationInfo.topic);
+    cayenneClient.publish(destinationInfo.topic,value);
   } else {
     console.log("no destination found for [" + topic + ']');
   }

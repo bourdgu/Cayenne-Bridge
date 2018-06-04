@@ -1,10 +1,10 @@
 {
-  "name": "devicehub-bridge",
+  "name": "cayenne-bridge",
   "version": "1.0.0",
-  "description": "Bridge local MQTT broker with DeviceHub.net",
+  "description": "Bridge local MQTT broker with Cayenne MyDevices.com",
   "repository": {
     "type": "git",
-    "url": "git://github.com/bourdgu/DeviceHub-Bridge.git"
+    "url": "git://github.com/bourdgu/Cayenne-Bridge.git"
   },
   "main": "Bridge.js",
   "scripts": {
